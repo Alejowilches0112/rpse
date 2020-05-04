@@ -60,7 +60,7 @@ $SPARK_HOME/bin/pyspark
 
 
 guardar en MongoDB 
-...
+```
 $SPARK_HOME/bin/pyspark
 >>> df = sqlContext.read.parquet("spark-warehouse/rrae_count_all")
 >>> from pymongo import MongoClient
@@ -70,7 +70,7 @@ $SPARK_HOME/bin/pyspark
 >>> data['conteo'] = []
 >>> for row in df.sort(df.cnt.desc()).take(10): data['conteo'].append({'diario': row['row']['diario'], 'empresa': row['row']['empresa'], 'clave': row['row']['type'], 'cont': row['cnt']  })
 >>> for d in data['conteo']: db.empresas_conteo.insert_one(d)
-...
+```
 
 ### Ejecutar localmente el análisis de sentimiento
 
