@@ -1,0 +1,29 @@
+#for AWS
+botocore
+boto3
+
+git+git://github.com/esnme/ultrajson.git
+warcio
+future
+requests
+
+# for link extraction and webgraph construction also:
+idna
+
+# for parsing HTML
+beautifulsoup4
+lxml
+
+# for exporting dataframe to Excel
+xlwt
+pandas
+
+#for firebase
+pyrebase
+#for mongo
+pymongo
+#for google-cloud
+google-cloud
+google-cloud-language
+#for Azure
+azure-ai-textanalytics
