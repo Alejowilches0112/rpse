@@ -60,7 +60,7 @@ $SPARK_HOME/bin/pyspark
 
 
 guardar en MongoDB 
-...
+```
 $SPARK_HOME/bin/pyspark
 >>> df = sqlContext.read.parquet("spark-warehouse/rpse_count_all")
 >>> from pymongo import MongoClient
@@ -69,8 +69,7 @@ $SPARK_HOME/bin/pyspark
 >>> data = []
 >>> for row in df.sort(df.cnt.desc()).take(50): data.append({'diario': row.key['service'], 'empresa': row.key['diario'], 'clave': row.key['type'], 'cont': row['cnt']  })
 >>> for d in data: db.empresas_conteo.insert_one(d)
-...
-
+```
 ### Ejecutar localmente el análisis de sentimiento
 
 Para el análisis de sentimiento en Azure, se debe tener una cuenta creada en Azure, y un nuevo servicio de tipo Text Analytics. Se puede utilizar la instancia Free, que permite 5000 transacciones por mes. Es [necesario crear un recurso para Text Analytics] (https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-apis-create-account) y modificar [rrae_score.py] (./rrae_score.py), para configurar el subscription key y el endpoint.
