@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from os import listdir, makedirs
-from os.path import join
+from os.path import join, exists
+
 import json
 import zlib
 import errno
@@ -16,6 +17,7 @@ URL_STRIP = '.com/'
 
 
 def retrieve_indexed_text(index):
+    name_output = ''
     try:
         byte_start = int(index['offset'])
         byte_end = byte_start + int(index['length']) - 1
@@ -23,36 +25,41 @@ def retrieve_indexed_text(index):
                          headers={'Range': 'bytes=%d-%d' % (byte_start, byte_end)})
 
         name_output = index['url'][(index['url'].find(URL_STRIP) + len(URL_STRIP)):].replace('/', '-') + '.warc'
-        with open(join(DIR_OUTPUT, name_output), 'wb') as f:
-            f.write(zlib.decompress(r.content, 32 + zlib.MAX_WBITS))
-        logging.info('Finished retrieving indexed text ' + name_output)
+        if( not exists(DIR_OUTPUT +'/'+name_output)):
+            with open(join(DIR_OUTPUT, name_output), 'wb') as f:
+                f.write(zlib.decompress(r.content, 32 + zlib.MAX_WBITS))
+            logging.info('Finished retrieving indexed text ' + name_output)
+        else:
+            logging.info('File Exist ' + name_output)
     except Exception as e:
         logging.info('Abort %s: error when retrieving file; %s' % (name_output, str(e)))
 
 
 def do_work(dir_index, num_processes):
-    """
-    :param dir_index: path of directory containing index files
-    :param num_processes: the number of processes to use
-    :return:
-    """
-    dict_indices = {}  # Use dict to remove duplicates caused by http/https
-    for idx_file in listdir(dir_index):
-        if not idx_file.startswith('.'):
-            with open(join(dir_index, idx_file), 'r') as f:
-                for line in f:
-                    index = json.loads(line)
-                    key = index['url'][index['url'].find('://'):]
-                    dict_indices[key] = index
+    try:
+        """
+        :param dir_index: path of directory containing index files
+        :param num_processes: the number of processes to use
+        :return:
+        """
+        dict_indices = {}  # Use dict to remove duplicates caused by http/https
+        for idx_file in listdir(dir_index):
+            if not idx_file.startswith('.'):
+                with open(join(dir_index, idx_file), 'r') as f:
+                    for line in f:
+                        index = json.loads(line)
+                        key = index['url'][index['url'].find('://'):]
+                        dict_indices[key] = index
 
-    indices = dict_indices.values()
-    logging.info('Start to retrieve %d indexed text in total' % len(indices))
-    #with closing(Pool(processes=num_processes)) as pool:
-    pool = Pool(processes=num_processes)
-    pool.map(retrieve_indexed_text, indices)
-    #pool.terminate()
-    logging.info('Finished retrieving all %d indexed text' % len(indices))
-
+        indices = dict_indices.values()
+        logging.info('Start to retrieve %d indexed text in total' % len(indices))
+        #with closing(Pool(processes=num_processes)) as pool:
+        pool = Pool(processes=num_processes)
+        pool.map(retrieve_indexed_text, indices)
+        #pool.terminate()
+        logging.info('Finished retrieving all %d indexed text' % len(indices))
+    except Exception as err:
+        logging.info('Abort %s: error when retrieving file; %s' % (name_output, str(e)))
 
 def get_args():
     logging.basicConfig(format='%(asctime)s: [%(levelname)s]: %(message)s', level=logging.INFO)

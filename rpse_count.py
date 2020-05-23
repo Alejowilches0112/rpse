@@ -14,7 +14,7 @@ from bs4.dammit import EncodingDetector
 
 from palabrasclave import *
 #import pyrebase
-from mongodb import mongoRRAE
+from mongodb import mongoRPSE
 
 class RraeCountJob(CCSparkJob):
     """ Procesamiento del indice RRAE: Conteo"""
@@ -27,27 +27,11 @@ class RraeCountJob(CCSparkJob):
             StructField("type", StringType(), True)]), True),
         StructField("cnt", LongType(), True)
     ])
-    word_pattern = re.compile('\w+', re.UNICODE)
-    #config = {"apiKey": "",
-    #"authDomain": "",
-    #"databaseURL": "",
-    #"projectId": "",
-    #"storageBucket": "",
-    #"messagingSenderId": "",
-    #"appId": "",
-    #"measurementId": ""
-    #}
-    #firebase = pyrebase.initialize_app(config)
-    #auth = firebase.auth()
-    #user = auth.sign_in_with_email_and_password("email", "pass")
-    #db = firebase.database()
-
-    #mongoc = MongoClient("localhost:27017")
-    #dbmongo = mongo.rrae
-    x = mongoRRAE()
     
+    x = mongoRPSE()
     def process_record(self, record):
         empresa = False
+        empresas = self.x.findAllEmpresas()
         if record.rec_type == 'response':
             # WARC response record
             contentType = record.http_headers.get_header('content-type', None)
@@ -63,42 +47,26 @@ class RraeCountJob(CCSparkJob):
                     pagina = self.get_html_body(pagina, record)
                     titulominusculas = titulo.lower()
                     # Detectar palabras claves en título
-                    for clave in Ecopetrol:
-                        if(clave.decode('utf-8').lower() in titulominusculas):
-                            data = {"diario": diarioActual, "empresa": "Ecopetrol", "clave": clave, "titulo": titulominusculas, "html": pagina}
-                            self.x.insert_mongo_files(data)
-                            #self.dbmongo.reviews.insert_one(data)
-                            #self.db.child("rrae/empresas/file_process/dinero").push(data,self.user['idToken'])
-                            self.process_record_word(pagina, titulominusculas)
-                            empresa = True
-                            yield ("Ecopetrol clave", diarioActual , clave), 1
-                            yield ("Ecopetrol", diarioActual , "Total"), 1
-
-                    # Detectar palabras conglomerado en título
-                    for clave in BPC:
-                        if(clave.decode('utf-8').lower() in titulominusculas):
-                            empresa = True
-                            data = {"diario": diarioActual,"empresa": "BPC", "clave": clave, "titulo": titulominusculas, "html": pagina} 
-                            self.x.insert_mongo_files(data)
-                            #self.dbmongo.reviews.insert_one(data)
-                            #self.db.child("rrae/empresas/file_process/dinero").push(data,self.user['idToken'])
-                            self.process_record_word(pagina, titulominusculas)
-                            yield ("BPC clave", diarioActual , clave), 1
-                            yield ("BPC", diarioActual , "Total"), 1
-
+                    for emp in empresas:
+                        for clave in emp['clave']:
+                            if(clave.decode('utf-8').lower() in titulominusculas):
+                                data = {"diario": diarioActual, "empresa": emp['empresa'], "clave": clave, "titulo": titulominusculas, "html": pagina, 'AWS': [{},[]], 'AZURE': [{},[]] }
+                                self.x.insert_mongo_files(data)
+                                empresa = True
+                                yield (emp['empresa'], diarioActual , "Total"), 1
                     # Contador match conglomerado - texto
                     if empresa:
                         print("hola empresa")
                     else:
                         yield ("No Procesado",diarioActual, "Total"), 1
                 else:
-                    yield ("No procesado", str(payload) , "Total"), 1
+                    yield ("No procesado", 'SIN DATOS' , "Total"), 1
             else:
                 # WAT, warcinfo, request, non-WAT metadata records
-                yield ("No procesado", str(contentType), "Total"), 1
+                yield ("No procesado", 'SIN DATOS', "Total"), 1
         else:
             # WAT, warcinfo, request, non-WAT metadata records
-            yield ("No procesado", record, "Total"), 1
+            yield ("No procesado", 'SIN DATOS', "Total"), 1
 
     def get_html_title(self, page, record):
         try:
@@ -123,9 +91,9 @@ class RraeCountJob(CCSparkJob):
 
     def get_html_text(self,contenidoPagina, record):
         try:
-            """f = open("prueba.txt","a")
-            f.write(contenidoPagina)
-            f.close()"""
+            #f = open("prueba.txt","a")
+            #f.write(contenidoPagina)
+            #f.close()
             claveInicio = self.x.html_inicio(record)
             claveFin = self.x.html_fin(record)
             lugarInicio = contenidoPagina.find(claveInicio)

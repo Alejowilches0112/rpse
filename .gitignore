@@ -1,2 +1,8 @@
+# Files
 *.json
 *.pyc
+*.txt
+*.warc
+
+#directories
+./spark-warehouse/*

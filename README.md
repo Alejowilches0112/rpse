@@ -36,17 +36,17 @@ Luego, envíe un trabajo con el comando
 ```
 $SPARK_HOME/bin/spark-submit ./rrae_count.py \
 	--num_output_partitions 1 --log_level WARN \
-	./input/warc_all.txt rrae_count_all
+	./input/warc_all.txt rpse_count_all
 ```
 
-Esto contará las palabras claves configuradas en la BD de su elección para las empresas seleccionadas, y almacenará los resultados en la tabla de SparkSQL "rrae_count_all" en la ubicación del warehouse de Spark definida por `spark.sql.warehouse.dir` (usualmente en su directorio de trabajo como as `./spark-warehouse/rrae_count_all`). Tenga en cuenta que el parámetro --num_output_partitions debería ser al menos el número de núcleos de su procesador.
+Esto contará las palabras claves configuradas en la BD de su elección para las empresas seleccionadas, y almacenará los resultados en la tabla de SparkSQL "rrae_count_all" en la ubicación del warehouse de Spark definida por `spark.sql.warehouse.dir` (usualmente en su directorio de trabajo como as `./spark-warehouse/rpse_count_all`). Tenga en cuenta que el parámetro --num_output_partitions debería ser al menos el número de núcleos de su procesador.
 
 
 El contenido puede ser accedido desde PySpark via SparkSQL, e.g.,
 
 ```
 $SPARK_HOME/bin/pyspark
->>> df = sqlContext.read.parquet("spark-warehouse/rrae_count_all")
+>>> df = sqlContext.read.parquet("spark-warehouse/rpse_count_all")
 >>> for row in df.sort(df.cnt.desc()).take(10): print(row)
 
 ```
@@ -54,7 +54,7 @@ $SPARK_HOME/bin/pyspark
 exportado a Excel 
 ```
 $SPARK_HOME/bin/pyspark
->>> df = sqlContext.read.parquet("spark-warehouse/rrae_count_all")
+>>> df = sqlContext.read.parquet("spark-warehouse/rpse_count_all")
 >>> df.toPandas().to_excel('fileOutput.xls', sheet_name = 'Sheet1', index = False)
 ```
 
@@ -62,14 +62,13 @@ $SPARK_HOME/bin/pyspark
 guardar en MongoDB 
 ...
 $SPARK_HOME/bin/pyspark
->>> df = sqlContext.read.parquet("spark-warehouse/rrae_count_all")
+>>> df = sqlContext.read.parquet("spark-warehouse/rpse_count_all")
 >>> from pymongo import MongoClient
 >>> mongo = MongoClient("localhost:27017")
->>> db = mongo.rrae
->>> data = {}
->>> data['conteo'] = []
->>> for row in df.sort(df.cnt.desc()).take(10): data['conteo'].append({'diario': row['row']['diario'], 'empresa': row['row']['empresa'], 'clave': row['row']['type'], 'cont': row['cnt']  })
->>> for d in data['conteo']: db.empresas_conteo.insert_one(d)
+>>> db = mongo.rpse
+>>> data = []
+>>> for row in df.sort(df.cnt.desc()).take(50): data.append({'diario': row.key['service'], 'empresa': row.key['diario'], 'clave': row.key['type'], 'cont': row['cnt']  })
+>>> for d in data: db.empresas_conteo.insert_one(d)
 ...
 
 ### Ejecutar localmente el análisis de sentimiento
